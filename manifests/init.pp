@@ -90,8 +90,14 @@
 # [*emperor_options*]
 #    Extra options to set in the emperor config file
 #
+# [*socket*]
+#    Whether to define socket in emperor config file.
+#    If socket is desired, provide full qualified path string, e.g., '/foo/bar'
+#    If socket is not desired, set it to false (the boolean)
+#
 # === Authors
 # - Josh Smeaton <josh.smeaton@gmail.com>
+# - Han Sooloo <hansooloo@gmail.com>
 #
 class uwsgi (
     $package_name        = $uwsgi::params::package_name,
@@ -216,7 +222,12 @@ class uwsgi (
 
     $log_directory = dirname($log_file)
     $pid_directory = dirname($pidfile)
-    $socket_directory = dirname($socket)
+    if $socket {
+      $socket_directory = dirname($socket)
+    } else {
+      # If we don't set this, Exec[] complains.  Harmless to set it to pid's.
+      $socket_directory = $pid_directory
+    }
 
     exec { $log_directory:
         creates => $log_directory,
@@ -234,7 +245,7 @@ class uwsgi (
         ensure => 'directory'
     }
 
-    if $socket_directory != $pid_directory {
+    if ($socket) and ($socket_directory != $pid_directory) {
       exec { $socket_directory:
           creates => $socket_directory,
           command => "mkdir -p ${socket_directory}",
